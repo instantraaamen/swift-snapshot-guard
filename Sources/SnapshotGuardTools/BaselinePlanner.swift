@@ -74,6 +74,10 @@ public enum BaselinePlanner {
           skip("not a snapshot attachment")
           continue
         }
+        if let directorySuffix, !parsed.directory.hasSuffix(directorySuffix) {
+          skip("its directory does not end with \(directorySuffix)")
+          continue
+        }
         let kind: BaselinePlacement.Kind
         switch parsed.kind {
         case "recorded":
@@ -86,10 +90,6 @@ public enum BaselinePlanner {
           kind = .actual
         default:
           skip("only there to look at (\(parsed.kind))")
-          continue
-        }
-        if let directorySuffix, !parsed.directory.hasSuffix(directorySuffix) {
-          skip("its directory does not end with \(directorySuffix)")
           continue
         }
         // A retried test attaches its snapshot again. Every attempt produced it the same way,
