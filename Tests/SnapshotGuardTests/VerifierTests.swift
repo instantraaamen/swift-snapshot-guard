@@ -285,7 +285,7 @@ struct TraitTests {
   /// Failures are reported to the test, with the files that `snapshot-guard fetch` looks for.
   @Test func aFailureIsRecordedAsAnIssueWithNamedAttachments() async {
     let directory = TemporaryDirectory()
-    await withKnownIssue {
+    await withKnownIssue { () async in
       await SnapshotConfiguration.$current.withValue(
         SnapshotConfiguration(recording: .never, directory: .at(directory.url))
       ) {
@@ -301,12 +301,14 @@ struct TraitTests {
 
   @Test func requireThrowsTheFailure() async {
     let directory = TemporaryDirectory()
-    await withKnownIssue {
-      await SnapshotConfiguration.$current.withValue(
-        SnapshotConfiguration(recording: .never, directory: .at(directory.url))
-      ) {
-        await #expect(throws: SnapshotFailure.self) {
+    let configuration = SnapshotConfiguration(recording: .never, directory: .at(directory.url))
+    await withKnownIssue { () async in
+      await SnapshotConfiguration.$current.withValue(configuration) {
+        do {
           try await requireSnapshot(of: "hello", as: .text)
+          Issue.record("requireSnapshot did not throw")
+        } catch {
+          #expect(error is SnapshotFailure)
         }
       }
     }
