@@ -8,9 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `assertGuardedSnapshot` and `verifyGuardedSnapshot`, which fail a retry that would otherwise pass against a reference recorded earlier in the same test run.
-- `SnapshotGuard.missingReferenceCheck()` to notice when swift-snapshot-testing changes its missing-reference message.
-- `Snapshotting.keyWindowImage` for SwiftUI views.
-- `SnapshotEnvironment`, `SnapshotDirectory` and `withCleanUserDefaults`.
-- `snapshot-guard fetch` to copy recorded snapshots out of a result bundle, from disk or from Xcode Cloud.
-- `snapshot-guard check` to report identical images and file name collisions.
+- `expectSnapshot` and `requireSnapshot`, for Swift Testing.
+- Image strategies for SwiftUI views, `UIView`, `UIViewController` and `CGImage`, and strategies for text and data.
+- Views are drawn through a window of their own in the host application, with a fixed size and safe area.
+- The `.snapshots` trait, with `recording`, `verifying`, `directory` and `imageTolerance`.
+- `SnapshotRecording.never`, which attaches a missing reference instead of writing it.
+- A reference recorded by the running process is never accepted by it.
+- `SnapshotVerification.referenceExists`, which checks that references exist without rendering.
+- Pixel comparison in 8-bit sRGB, with a tolerance in pixels, a channel delta and ignored regions.
+- Rejection of images of one flat colour.
+- The recording environment is stored in every reference and reported when it differs.
+- `SnapshotSettling`, to wait for the main queue, a condition or a delay before a snapshot.
+- `SnapshotEnvironment` and `withCleanUserDefaults`.
+- `snapshot-guard fetch`, which places attached snapshots from a result bundle or an Xcode Cloud build, and `--include-mismatched` to adopt changed screens.
+- `snapshot-guard check`, which reports identical, flat and colliding references and mixed recording environments.

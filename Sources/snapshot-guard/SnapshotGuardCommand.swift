@@ -1,6 +1,20 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-snapshot-guard open source project
+//
+// Copyright (c) 2026 the swift-snapshot-guard project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import ArgumentParser
 import Foundation
-import SnapshotGuardCore
+import SnapshotGuardTools
+import SnapshotGuardXcodeCloud
 
 @main
 struct SnapshotGuardCommand: AsyncParsableCommand {
@@ -16,9 +30,10 @@ struct Fetch: AsyncParsableCommand {
   static let configuration = CommandConfiguration(
     abstract: "Copy the snapshots a test run recorded into the __Snapshots__ directory.",
     discussion: """
-      Delete the references you want to re-record, run the tests on CI, then run this command. \
-      swift-snapshot-testing records a missing reference and attaches it to the test, and this \
-      command puts each attachment back under its reference file name.
+      A snapshot test that has no reference fails and attaches its snapshot to the test. This \
+      command reads those attachments from a result bundle and puts each one where its \
+      reference belongs. With --include-mismatched it also takes the snapshots that did not \
+      match, which adopts an intended change without deleting anything first.
 
       Pass --xcresult to read a result bundle you already have, or --xcode-cloud to download \
       one from Xcode Cloud. Xcode Cloud needs an App Store Connect API key in \
@@ -45,8 +60,14 @@ struct Fetch: AsyncParsableCommand {
   @Option(name: .long, help: "The Xcode Cloud build number. Defaults to the latest finished build.")
   var build: Int?
 
-  @Option(name: .long, help: "Only take snapshots from suites whose name ends with this text.")
-  var suiteSuffix: String?
+  @Option(name: .long, help: "Only take snapshots whose directory name ends with this text.")
+  var directorySuffix: String?
+
+  @Flag(name: .long, help: "Also take the snapshots that did not match their reference.")
+  var includeMismatched = false
+
+  @Flag(name: .long, help: "List the attachments that are left out, with the reason.")
+  var verbose = false
 
   @Flag(name: .long, help: "List what would be written without writing it.")
   var dryRun = false
@@ -68,8 +89,10 @@ struct Fetch: AsyncParsableCommand {
       bundle = URL(fileURLWithPath: xcresult)
     } else {
       let cloud = XcodeCloud(key: try .fromEnvironment())
-      let archive = try await cloud.findResultArchive(.init(product: product, workflow: workflow, build: build))
-      print("Build #\(archive.buildNumber): \(archive.fileName) (\(archive.fileSize / 1_048_576) MB)")
+      let archive = try await cloud.findResultArchive(
+        .init(product: product, workflow: workflow, build: build))
+      print(
+        "Build #\(archive.buildNumber): \(archive.fileName) (\(archive.fileSize / 1_048_576) MB)")
       let zip = workspace.appendingPathComponent("xcresult.zip")
       try await cloud.download(archive, to: zip)
       bundle = try XCResult.unzip(zip, to: workspace.appendingPathComponent("unzipped"))
@@ -77,12 +100,25 @@ struct Fetch: AsyncParsableCommand {
 
     let exportDirectory = workspace.appendingPathComponent("attachments")
     let manifest = try XCResult.exportAttachments(from: bundle, to: exportDirectory)
-    let placements = BaselinePlanner.plan(manifest: manifest, suiteSuffix: suiteSuffix)
+    let plan = BaselinePlanner.plan(
+      manifest: manifest, includeMismatched: includeMismatched, directorySuffix: directorySuffix)
+    let placements = plan.placements
     let snapshots = URL(fileURLWithPath: snapshotsDir)
 
+    if verbose {
+      for skipped in plan.skipped {
+        print("left out: \(skipped.name) (\(skipped.reason))")
+      }
+    }
+    let mismatched = plan.skipped.filter { $0.reason.hasPrefix("did not match") }.count
+    if mismatched > 0 {
+      print(
+        "\(mismatched) snapshot(s) did not match their reference. Pass --include-mismatched to adopt them."
+      )
+    }
     if dryRun {
       for placement in placements {
-        print("\(placement.suite)/\(placement.fileName)")
+        print("\(placement.directory)/\(placement.fileName) (\(placement.kind.rawValue))")
       }
       print("\(placements.count) snapshot(s) would be written to \(snapshots.path).")
       return
@@ -91,6 +127,7 @@ struct Fetch: AsyncParsableCommand {
     let written = try BaselinePlanner.place(placements, from: exportDirectory, into: snapshots)
     let audit = try BaselineAudit.audit(files: written)
     Report.printIdenticalFiles(audit.identicalFiles, relativeTo: snapshots)
+    Report.printUniformImages(audit.uniformImages, relativeTo: snapshots)
     print("\(written.count) snapshot(s) written to \(snapshots.path).")
     print("Look at every image before you commit it.")
   }
@@ -100,9 +137,10 @@ struct Check: ParsableCommand {
   static let configuration = CommandConfiguration(
     abstract: "Look for reference images that are probably wrong.",
     discussion: """
-      Reports references with identical bytes, which usually means nothing was drawn, and \
-      references in different suites that share a file name, which overwrite each other when \
-      they are flattened into a test bundle.
+      Reports references with identical bytes and references of one flat colour, which usually \
+      mean nothing was drawn; references in different directories that share a file name, which \
+      overwrite each other when they are flattened into a test bundle; and references that were \
+      recorded in more than one environment, which cannot all match one test run.
       """
   )
 
@@ -117,6 +155,8 @@ struct Check: ParsableCommand {
     let audit = try BaselineAudit.audit(directory: snapshots)
     Report.printIdenticalFiles(audit.identicalFiles, relativeTo: snapshots)
     Report.printNameCollisions(audit.nameCollisions, relativeTo: snapshots)
+    Report.printUniformImages(audit.uniformImages, relativeTo: snapshots)
+    Report.printEnvironments(audit.environments, relativeTo: snapshots)
     if audit.isClean {
       print("No problems found.")
     } else if strict {
@@ -137,6 +177,20 @@ enum Report {
     for group in groups {
       print("warning: \(group.count) snapshots share the file name \(group[0].lastPathComponent):")
       for file in group { print("  \(relativePath(file, root))") }
+    }
+  }
+
+  static func printUniformImages(_ files: [URL], relativeTo root: URL) {
+    guard !files.isEmpty else { return }
+    print("warning: \(files.count) snapshot(s) are one flat colour. Nothing may have been drawn:")
+    for file in files { print("  \(relativePath(file, root))") }
+  }
+
+  static func printEnvironments(_ environments: [String: [URL]], relativeTo root: URL) {
+    guard !environments.isEmpty else { return }
+    print("warning: the snapshots were recorded in \(environments.count) different environments:")
+    for (environment, files) in environments.sorted(by: { $0.value.count > $1.value.count }) {
+      print("  \(environment): \(files.count) file(s), such as \(relativePath(files[0], root))")
     }
   }
 

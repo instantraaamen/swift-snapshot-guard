@@ -1,3 +1,16 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-snapshot-guard open source project
+//
+// Copyright (c) 2026 the swift-snapshot-guard project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import CryptoKit
 import Foundation
 
@@ -113,7 +126,9 @@ struct AppStoreConnectClient: Sendable {
       resolvingAgainstBaseURL: false
     )!
     if !query.isEmpty {
-      components.queryItems = query.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
+      components.queryItems = query.sorted { $0.key < $1.key }.map {
+        URLQueryItem(name: $0.key, value: $0.value)
+      }
     }
     return try await get(components.url!)
   }
@@ -124,7 +139,8 @@ struct AppStoreConnectClient: Sendable {
     let (data, response) = try await URLSession.shared.data(for: request)
     let status = (response as? HTTPURLResponse)?.statusCode ?? 0
     guard (200..<300).contains(status) else {
-      throw AppStoreConnectError.http(status: status, url: url, body: String(decoding: data, as: UTF8.self))
+      throw AppStoreConnectError.http(
+        status: status, url: url, body: String(decoding: data, as: UTF8.self))
     }
     return try JSONDecoder().decode(APIDocument.self, from: data)
   }

@@ -1,3 +1,16 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-snapshot-guard open source project
+//
+// Copyright (c) 2026 the swift-snapshot-guard project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import Foundation
 
 /// An error from an external tool.
@@ -40,11 +53,16 @@ public enum XCResult {
   /// Exports every attachment in the bundle and returns the manifest.
   ///
   /// Requires the `xcresulttool` that ships with Xcode 16 or later.
-  public static func exportAttachments(from xcresult: URL, to directory: URL) throws -> [ManifestEntry] {
+  public static func exportAttachments(from xcresult: URL, to directory: URL) throws
+    -> [ManifestEntry]
+  {
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     try Shell.run(
       "/usr/bin/xcrun",
-      ["xcresulttool", "export", "attachments", "--path", xcresult.path, "--output-path", directory.path]
+      [
+        "xcresulttool", "export", "attachments", "--path", xcresult.path, "--output-path",
+        directory.path,
+      ]
     )
     let manifest = try Data(contentsOf: directory.appendingPathComponent("manifest.json"))
     return try JSONDecoder().decode([ManifestEntry].self, from: manifest)
@@ -54,9 +72,11 @@ public enum XCResult {
   public static func unzip(_ archive: URL, to directory: URL) throws -> URL {
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     try Shell.run("/usr/bin/ditto", ["-x", "-k", archive.path, directory.path])
-    let contents = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+    let contents = try FileManager.default.contentsOfDirectory(
+      at: directory, includingPropertiesForKeys: nil)
     guard let bundle = contents.first(where: { $0.pathExtension == "xcresult" }) else {
-      throw ShellError(command: "ditto", status: 0, output: "No .xcresult bundle in \(archive.lastPathComponent).")
+      throw ShellError(
+        command: "ditto", status: 0, output: "No .xcresult bundle in \(archive.lastPathComponent).")
     }
     return bundle
   }

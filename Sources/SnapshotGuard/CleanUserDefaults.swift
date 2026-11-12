@@ -1,3 +1,16 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-snapshot-guard open source project
+//
+// Copyright (c) 2026 the swift-snapshot-guard project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import Foundation
 
 /// Runs `body` with an empty persistent domain, then restores the previous contents.
@@ -25,4 +38,25 @@ public func withCleanUserDefaults<Result>(
     }
   }
   return try body()
+}
+
+/// Runs `body` with an empty persistent domain, then restores the previous contents.
+///
+/// The asynchronous counterpart of ``withCleanUserDefaults(_:domain:_:)-(_,_,()->Result)``, for
+/// tests that take snapshots inside it.
+public func withCleanUserDefaults<Result>(
+  _ defaults: UserDefaults = .standard,
+  domain: String,
+  isolation: isolated (any Actor)? = #isolation,
+  _ body: () async throws -> Result
+) async rethrows -> Result {
+  let saved = defaults.persistentDomain(forName: domain)
+  defaults.removePersistentDomain(forName: domain)
+  defer {
+    defaults.removePersistentDomain(forName: domain)
+    if let saved {
+      defaults.setPersistentDomain(saved, forName: domain)
+    }
+  }
+  return try await body()
 }

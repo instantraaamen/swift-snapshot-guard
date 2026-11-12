@@ -1,0 +1,4 @@
+swift-snapshot-guard
+Copyright (c) 2026 the swift-snapshot-guard project authors
+
+This product is licensed under the Apache License, Version 2.0. See LICENSE.txt.

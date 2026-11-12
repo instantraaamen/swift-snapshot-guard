@@ -1,3 +1,16 @@
+//===----------------------------------------------------------------------===//
+//
+// This source file is part of the swift-snapshot-guard open source project
+//
+// Copyright (c) 2026 the swift-snapshot-guard project authors
+// Licensed under Apache License v2.0
+//
+// See LICENSE.txt for license information
+//
+// SPDX-License-Identifier: Apache-2.0
+//
+//===----------------------------------------------------------------------===//
+
 import Foundation
 
 /// Finds and downloads the result bundle of an Xcode Cloud test run.
@@ -46,7 +59,9 @@ public struct XcodeCloud: Sendable {
     if let name = query.workflow {
       for product in products {
         let workflows = try await client.all("ciProducts/\(product.id)/workflows")
-        sources += workflows.filter { $0.attributes?.name == name }.map { "ciWorkflows/\($0.id)/buildRuns" }
+        sources += workflows.filter { $0.attributes?.name == name }.map {
+          "ciWorkflows/\($0.id)/buildRuns"
+        }
       }
       guard !sources.isEmpty else {
         throw AppStoreConnectError.notFound("No Xcode Cloud workflow is named \"\(name)\".")
@@ -108,7 +123,8 @@ public struct XcodeCloud: Sendable {
   ///
   /// The build-for-testing action also uploads a result bundle, but it holds no attachments.
   static func isTestResultArchive(_ fileName: String) -> Bool {
-    fileName.hasSuffix(".zip") && fileName.contains("XCResult") && !fileName.contains("build-for-testing")
+    fileName.hasSuffix(".zip") && fileName.contains("XCResult")
+      && !fileName.contains("build-for-testing")
   }
 
   /// Downloads the archive to `destination`.
