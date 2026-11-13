@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-13
+
 ### Added
 
 - `expectSnapshot` and `requireSnapshot`, for Swift Testing.
@@ -23,3 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `snapshot-guard fetch`, which places attached snapshots from a result bundle or an Xcode Cloud build, and `--include-mismatched` to adopt changed screens.
 - `snapshot-guard check`, which reports identical, flat and colliding references and mixed recording environments.
 - The App Store Connect token is only sent to the host of the API over HTTPS. A page link that points elsewhere is refused.
+
+[Unreleased]: https://github.com/instantraaamen/swift-snapshot-guard/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/instantraaamen/swift-snapshot-guard/releases/tag/0.1.0
