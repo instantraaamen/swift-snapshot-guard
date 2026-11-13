@@ -64,4 +64,31 @@ import Testing
     #expect(!XcodeCloud.isTestResultArchive("App-build-for-testing-XCResult.zip"))
     #expect(!XcodeCloud.isTestResultArchive("Logs.zip"))
   }
+
+  @Test(arguments: [
+    "https://api.appstoreconnect.apple.com/v1/ciProducts?cursor=abc",
+    "https://API.appstoreconnect.apple.com/v1/ciWorkflows/1/buildRuns",
+  ])
+  func theTokenGoesToTheAPI(url: String) throws {
+    let client = AppStoreConnectClient(
+      key: AppStoreConnectKey(keyID: "KEY", issuerID: "ISSUER", privateKeyPEM: "PEM"))
+    #expect(client.isTrusted(try #require(URL(string: url))))
+  }
+
+  @Test(arguments: [
+    "https://example.com/v1/ciProducts",
+    "http://api.appstoreconnect.apple.com/v1/ciProducts",
+    "https://api.appstoreconnect.apple.com.example.com/v1/ciProducts",
+    "https://api.appstoreconnect.apple.com@example.com/v1/ciProducts",
+    "https://user@api.appstoreconnect.apple.com/v1/ciProducts",
+    "https://api.appstoreconnect.apple.com:8443/v1/ciProducts",
+  ])
+  func theTokenGoesNowhereElse(url: String) async throws {
+    let client = AppStoreConnectClient(
+      key: AppStoreConnectKey(keyID: "KEY", issuerID: "ISSUER", privateKeyPEM: "PEM"))
+    let url = try #require(URL(string: url))
+    #expect(!client.isTrusted(url))
+    // Refused before the token is signed or anything is sent.
+    await #expect(throws: AppStoreConnectError.self) { _ = try await client.get(url) }
+  }
 }

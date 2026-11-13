@@ -82,6 +82,8 @@ public enum AppStoreConnectError: Error, CustomStringConvertible {
   case missingEnvironment(String)
   case http(status: Int, url: URL, body: String)
   case notFound(String)
+  /// The API pointed at a URL outside itself. The token is not sent there.
+  case untrustedURL(URL)
 
   public var description: String {
     switch self {
@@ -91,6 +93,9 @@ public enum AppStoreConnectError: Error, CustomStringConvertible {
       return "App Store Connect returned \(status) for \(url.path).\n\(body)"
     case .notFound(let what):
       return what
+    case .untrustedURL(let url):
+      let host = url.host ?? "an unknown host"
+      return "App Store Connect pointed at \(host), which is not the API. The request was not sent."
     }
   }
 }
@@ -133,7 +138,18 @@ struct AppStoreConnectClient: Sendable {
     return try await get(components.url!)
   }
 
+  /// Whether a request to `url` may carry the token: only HTTPS, and only the host of the API.
+  ///
+  /// The URLs of further pages come from responses. They are checked here, so that a response
+  /// cannot direct the token anywhere else.
+  func isTrusted(_ url: URL) -> Bool {
+    guard let host = url.host, let apiHost = baseURL.host else { return false }
+    return url.scheme?.lowercased() == "https" && host.lowercased() == apiHost.lowercased()
+      && url.port == baseURL.port && url.user == nil
+  }
+
   func get(_ url: URL) async throws -> APIDocument {
+    guard isTrusted(url) else { throw AppStoreConnectError.untrustedURL(url) }
     var request = URLRequest(url: url)
     request.setValue("Bearer \(try key.token())", forHTTPHeaderField: "Authorization")
     let (data, response) = try await URLSession.shared.data(for: request)

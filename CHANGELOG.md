@@ -22,3 +22,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SnapshotEnvironment` and `withCleanUserDefaults`.
 - `snapshot-guard fetch`, which places attached snapshots from a result bundle or an Xcode Cloud build, and `--include-mismatched` to adopt changed screens.
 - `snapshot-guard check`, which reports identical, flat and colliding references and mixed recording environments.
+- The App Store Connect token is only sent to the host of the API over HTTPS. A page link that points elsewhere is refused.
