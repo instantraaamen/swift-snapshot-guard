@@ -15,6 +15,17 @@
 
 依存は、コマンドが使う [swift-argument-parser](https://github.com/apple/swift-argument-parser) だけです。
 
+画面が変わると、テストはどれだけ変わったかを伝え、比べたものを添付します。
+
+![基準、今回のスナップショット、差のあるピクセル](Assets/readme-diff.png)
+
+```
+“light.1.png” does not match its reference. 74358 of 1053000 pixels differ (7.062%, allowed 0.000%).
+The largest difference in a colour channel is 255 of 255.
+```
+
+自分のアプリに入れる前に、[サンプル](Examples/SnapshotGuardExample)で一通り試せます。
+
 ## 使い方
 
 ```swift

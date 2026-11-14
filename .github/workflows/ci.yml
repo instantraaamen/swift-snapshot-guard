@@ -29,3 +29,11 @@ jobs:
           xcodebuild build -scheme SnapshotGuard \
             -destination 'generic/platform=iOS Simulator' \
             -skipPackagePluginValidation
+      - name: Build the example
+        run: |
+          xcodebuild build-for-testing \
+            -project Examples/SnapshotGuardExample/SnapshotGuardExample.xcodeproj \
+            -scheme SnapshotGuardExample \
+            -destination 'generic/platform=iOS Simulator' \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO

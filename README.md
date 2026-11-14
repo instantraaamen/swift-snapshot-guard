@@ -15,6 +15,17 @@ Each of these happened in the app this package was written for, some of them mor
 
 It has no dependencies beyond [swift-argument-parser](https://github.com/apple/swift-argument-parser), which only the command line tool uses.
 
+When a screen changes, the test says by how much, and attaches what it compared:
+
+![The reference, the snapshot of this run, and the pixels that differ](Assets/readme-diff.png)
+
+```
+“light.1.png” does not match its reference. 74358 of 1053000 pixels differ (7.062%, allowed 0.000%).
+The largest difference in a colour channel is 255 of 255.
+```
+
+To try the whole flow before touching your own app, run the [example](Examples/SnapshotGuardExample).
+
 ## Installation
 
 ```swift

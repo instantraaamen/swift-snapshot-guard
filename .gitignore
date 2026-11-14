@@ -7,3 +7,5 @@ DerivedData/
 *.xcresult
 Package.resolved
 .vscode/
+# The example records its references where it runs.
+/Examples/**/__Snapshots__/

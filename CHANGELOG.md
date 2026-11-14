@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- An example, `Examples/SnapshotGuardExample`, to try recording, a failing comparison, `snapshot-guard fetch` and `snapshot-guard check` with.
+
 ## [0.1.0] - 2026-11-13
 
 ### Added
